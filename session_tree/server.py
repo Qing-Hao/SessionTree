@@ -85,4 +85,14 @@ def create_app(service, launcher) -> FastAPI:
             raise HTTPException(404, "Unknown worktree")
         return run(new_session_spec(node["path"], node["id"]))
 
+    @app.post("/api/worktrees/code", dependencies=[Depends(require_local_post)])
+    def open_code(body: NewBody) -> dict:
+        node = find_node(service.snapshot(), body.path)
+        if node is None:
+            raise HTTPException(404, "Unknown worktree")
+        try:
+            return launcher.open_editor(node["path"])
+        except LaunchError as exc:
+            raise HTTPException(503, str(exc)) from exc
+
     return app

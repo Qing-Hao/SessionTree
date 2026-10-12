@@ -29,7 +29,13 @@ class FakeService:
 
 class FakeLauncher:
     def __init__(self, fail=False):
-        self.launched, self.focused, self.fail = [], [], fail
+        self.launched, self.focused, self.opened, self.fail = [], [], [], fail
+
+    def open_editor(self, path):
+        if self.fail:
+            raise LaunchError("VS Code (code) is not on PATH")
+        self.opened.append(path)
+        return {"ok": True, "command": ["Code.exe", path]}
 
     def launch(self, spec):
         if self.fail:
@@ -95,6 +101,20 @@ def test_new_session_only_for_known_worktree(client, launcher):
     assert client.post("/api/worktrees/new", headers=OK, json={"path": "c:\\REPO"}).status_code == 200
     assert launcher.launched[0].program == ["claude"] and launcher.launched[0].title == "main"
     assert client.post("/api/worktrees/new", headers=OK, json={"path": "C:\\Windows"}).status_code == 404
+
+
+def test_open_code_only_for_known_worktree(client, launcher):
+    assert client.post("/api/worktrees/code", json={"path": "C:\\repo"}).status_code == 403
+    assert client.post("/api/worktrees/code", headers=OK, json={"path": "c:\\REPO"}).status_code == 200
+    assert launcher.opened == ["C:\\repo"]
+    assert client.post("/api/worktrees/code", headers=OK, json={"path": "C:\\Windows"}).status_code == 404
+    assert launcher.opened == ["C:\\repo"]
+
+
+def test_missing_vscode_returns_503():
+    client = TestClient(create_app(FakeService(), FakeLauncher(fail=True)), base_url="http://127.0.0.1:4317")
+    r = client.post("/api/worktrees/code", headers=OK, json={"path": "C:\\repo"})
+    assert r.status_code == 503 and r.json()["detail"] == "VS Code (code) is not on PATH"
 
 
 def test_missing_claude_returns_503():

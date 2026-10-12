@@ -110,6 +110,7 @@ button { font: inherit; color: inherit; }
 .where.stale { color: var(--warn); }
 .add { margin-left: auto; border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 0 7px; font-size: 11.5px; color: var(--muted); cursor: pointer; line-height: 18px; }
 .add:hover { color: var(--fg); border-color: var(--line-strong); }
+.add.next { margin-left: 0; }
 .note { font-size: 11.5px; color: var(--muted); margin: 1px 0; }
 .note.warn { color: var(--warn); font-weight: 600; }
 .node.dim .nhead, .node.dim .note { opacity: 0.4; }
@@ -276,7 +277,7 @@ function sessionLine(s, r, n) {
 }
 
 function addButton(path, label) {
-  return `<button type="button" class="add" data-act="new" data-path="${esc(path)}" title="Start a new Claude Code session in ${esc(label)}">+ session</button>`;
+  return `<button type="button" class="add" data-act="code" data-path="${esc(path)}" title="Open ${esc(label)} in VS Code">code</button><button type="button" class="add next" data-act="new" data-path="${esc(path)}" title="Start a new Claude Code session in ${esc(label)}">+ session</button>`;
 }
 
 function nodeRow(r, n, d) {
@@ -492,6 +493,12 @@ document.addEventListener("click", e => {
     act(t, async () => {
       const res = await post("/api/worktrees/new", { path: t.dataset.path });
       showToast({ title: "Started a new Claude Code session", cmd: res.command.join(" "), autoHide: 6000 });
+    });
+  }
+  if (a === "code") {
+    act(t, async () => {
+      await post("/api/worktrees/code", { path: t.dataset.path });
+      showToast({ title: "Opening in VS Code", msg: t.dataset.path, autoHide: 3000 });
     });
   }
 });
