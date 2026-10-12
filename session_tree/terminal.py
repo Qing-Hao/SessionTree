@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -39,9 +40,18 @@ def new_session_spec(path: str, title: str) -> LaunchSpec:
 
 
 def wt_command(spec: LaunchSpec, program_path: str) -> list[str]:
-    """Windows Terminal new-tab command; ';' is escaped because wt splits commands on it."""
+    """New Windows Terminal tab running the program inside PowerShell; ';' is escaped as wt splits on it."""
+    # Args are known values only (resolved exe path, validated session id), so the PowerShell string is safe.
+    ps = "& '" + program_path.replace("'", "''") + "'" + "".join(" " + a for a in spec.program[1:])
     return ["wt", "-w", "0", "nt", "-d", spec.cwd.replace(";", "\\;"), "--title", spec.title.replace(";", ","),
-            program_path, *spec.program[1:]]
+            "powershell.exe", "-NoLogo", "-NoExit", "-Command", ps]
+
+
+def launch_env(env: dict[str, str]) -> dict[str, str]:
+    """Copy env without variables that would make the new claude think it is a child session or colourless."""
+    drop = {"NO_COLOR", "CLAUDECODE", "CLAUDE_CODE_CHILD_SESSION", "CLAUDE_CODE_ENTRYPOINT"}
+    return {k: v for k, v in env.items()
+            if k not in drop and not k.startswith(("CLAUDE_CODE_SESSION_", "CLAUDE_CODE_MESSAGING_"))}
 
 
 class Launcher:
@@ -52,11 +62,12 @@ class Launcher:
         if program is None:
             raise LaunchError(f"{spec.program[0]} is not on PATH")
         wt = shutil.which("wt")
+        env = launch_env(dict(os.environ))
         if wt:
             cmd = wt_command(spec, program)
-            subprocess.Popen([wt, *cmd[1:]], creationflags=_NO_WINDOW)
+            subprocess.Popen([wt, *cmd[1:]], creationflags=_NO_WINDOW, env=env)
             return {"ok": True, "via": "wt", "command": cmd}
-        subprocess.Popen([program, *spec.program[1:]], cwd=spec.cwd, creationflags=_NEW_CONSOLE)
+        subprocess.Popen([program, *spec.program[1:]], cwd=spec.cwd, creationflags=_NEW_CONSOLE, env=env)
         return {"ok": True, "via": "console", "command": spec.program}
 
     def focus(self, title: str) -> dict:
