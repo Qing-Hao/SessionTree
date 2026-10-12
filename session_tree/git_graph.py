@@ -13,7 +13,11 @@ _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 
 class GitError(Exception):
-    """A git command failed, timed out or could not start."""
+    """A git command failed, timed out or could not start; returncode is None unless git exited."""
+
+    def __init__(self, message: str, returncode: int | None = None) -> None:
+        super().__init__(message)
+        self.returncode = returncode
 
 
 @dataclass
@@ -53,7 +57,7 @@ def git(cwd: str, *args: str) -> str:
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise GitError(str(exc)) from exc
     if r.returncode != 0:
-        raise GitError(r.stderr.strip() or f"git {' '.join(args)} failed")
+        raise GitError(r.stderr.strip() or f"git {' '.join(args)} failed", r.returncode)
     return r.stdout.strip()
 
 
@@ -128,8 +132,16 @@ def _build(path: str, wts: list[Worktree], tips: dict[str, str]) -> RepoGraph:
     pairs = [(n.id, other) for n in children for other in sha_of if other != n.id]
     with ThreadPoolExecutor(max_workers=GIT_WORKERS) as pool:
         dists = dict(zip(pairs, pool.map(lambda p: _fork_distance(path, sha_of[p[0]], sha_of[p[1]]), pairs)))
+    parents = {n.id: _pick_parent(n.id, sha_of, bases, dists) for n in children}
+    # Siblings forked from a commit that is no branch tip pick each other; re-pick outside the loop.
+    for _ in range(len(parents)):
+        cycle = _find_cycle(parents)
+        if not cycle:
+            break
+        for me in cycle:
+            parents[me] = _pick_parent(me, sha_of, bases, dists, exclude=cycle)
     for node in children:
-        parent = _pick_parent(node.id, sha_of, bases, dists)
+        parent = parents[node.id]
         if parent:
             behind, ahead = _left_right(path, sha_of[parent], sha_of[node.id])
             node.parent, node.ahead, node.behind = parent, ahead, behind
@@ -146,17 +158,33 @@ def _fork_distance(cwd: str, my_sha: str, other_sha: str) -> int | None:
     """Commits on my_sha since it split from other_sha; None for unrelated histories."""
     try:
         mb = git(cwd, "merge-base", my_sha, other_sha)
-        return 0 if mb == my_sha else int(git(cwd, "rev-list", "--count", f"{mb}..{my_sha}"))
-    except (GitError, ValueError):
-        return None
+    except GitError as exc:
+        if exc.returncode == 1:
+            return None  # no common ancestor
+        raise  # timeouts and other failures must surface, not be cached as "unrelated"
+    return 0 if mb == my_sha else int(git(cwd, "rev-list", "--count", f"{mb}..{my_sha}"))
 
 
-def _pick_parent(me: str, sha_of: dict[str, str], bases: set[str], dists: dict) -> str | None:
+def _find_cycle(parents: dict[str, str | None]) -> set[str]:
+    """Return the members of one parent loop, or an empty set."""
+    for start in parents:
+        chain: list[str] = []
+        cur = start
+        while cur in parents and cur not in chain:
+            chain.append(cur)
+            cur = parents[cur]
+        if cur in chain:
+            return set(chain[chain.index(cur):])
+    return set()
+
+
+def _pick_parent(me: str, sha_of: dict[str, str], bases: set[str], dists: dict,
+                 exclude: set[str] = frozenset()) -> str | None:
     """Pick the ref whose fork point is nearest to me's tip; see spec section 5.2."""
     best: tuple[tuple, str] | None = None
     for other, other_sha in sha_of.items():
         dist = dists.get((me, other))
-        if other == me or dist is None:
+        if other == me or other in exclude or dist is None:
             continue
         if dist == 0 and other_sha != sha_of[me]:
             continue  # other forked from me

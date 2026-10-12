@@ -96,13 +96,18 @@ class BoardService:
             return _folder_repo(g)
         try:
             graph = self.graphs.get(g["cwd"])
+            nodes = [_node_dict(n, graph.root) for n in graph.nodes]
+            if not nodes:
+                return _folder_repo(g, error="This repository has no worktree to show (bare repository)")
+            for s in g["sessions"]:
+                s["repo"] = g["key"]
+                _attach(s, nodes)
         except GitError as exc:
             warnings.append(f"git failed in {g['cwd']}: {exc}")
             return _folder_repo(g, error=f"Cannot read git data: {exc}")
-        nodes = [_node_dict(n, graph.root) for n in graph.nodes]
-        for s in g["sessions"]:
-            s["repo"] = g["key"]
-            _attach(s, nodes)
+        except Exception as exc:  # one odd repo must not freeze the whole board
+            log.exception("Building repo %s failed", g["cwd"])
+            return _folder_repo(g, error=f"Could not build the branch graph: {exc}")
         return _finish({"key": g["key"], "name": graph.name, "root": graph.root, "nogit": False, "error": None,
                         "nodes": nodes, "loose_branches": graph.loose_branches})
 
@@ -169,7 +174,7 @@ def _attach(s: dict, nodes: list[dict]) -> None:
         p = norm_path(n["path"])
         if (cwd == p or cwd.startswith(p + os.sep)) and (best is None or len(p) > len(norm_path(best["path"]))):
             best = n
-    target = best or next((n for n in nodes if n["is_main"]), nodes[0])
+    target = best or next((n for n in nodes if n["is_main"]), None) or nodes[0]
     target["sessions"].append(s)
 
 

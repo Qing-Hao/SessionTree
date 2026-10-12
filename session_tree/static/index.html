@@ -234,6 +234,8 @@ function ordered(r) {
     seen.add(n.id); out.push({ n, d }); walk(n.id, d + 1);
   });
   walk("__root", 0);
+  // Never drop a node: anything not reached from a root (e.g. a parent loop) is shown at the top level.
+  r.nodes.forEach(n => { if (!seen.has(n.id)) { seen.add(n.id); out.push({ n, d: 0 }); walk(n.id, 1); } });
   return out;
 }
 

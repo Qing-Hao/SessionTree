@@ -1,6 +1,9 @@
 import shutil
 
+import pytest
+
 from helpers import git_commit, git_run, make_repo
+from session_tree import git_graph
 from session_tree.git_graph import GitGraphCache, norm_path, read_repo, repo_key
 
 
@@ -34,6 +37,36 @@ def test_twins_both_point_at_base(tmp_path):
     n = nodes_by_id(read_repo(str(repo)))
     assert (n["t1"].parent, n["t1"].ahead) == ("main", 1)
     assert (n["t2"].parent, n["t2"].ahead) == ("main", 1)
+
+
+def test_siblings_from_a_non_tip_commit_do_not_point_at_each_other(tmp_path):
+    repo = make_repo(tmp_path / "proj")
+    git_run(repo, "checkout", "-q", "-b", "upstream")  # stands in for origin/main ahead of local main
+    git_commit(repo, 2)
+    for b in ("feat-a", "feat-b"):
+        git_run(repo, "worktree", "add", "-q", "-b", b, str(tmp_path / b))
+        git_run(tmp_path / b, "-c", "user.name=t", "-c", "user.email=t@example.com",
+                "commit", "--allow-empty", "-q", "-m", f"work on {b}")  # distinct, else same sha
+    git_run(repo, "checkout", "-q", "main")
+    git_run(repo, "branch", "-q", "-D", "upstream")
+    n = nodes_by_id(read_repo(str(repo)))
+    assert (n["feat-a"].parent, n["feat-a"].ahead) == ("main", 3)
+    assert (n["feat-b"].parent, n["feat-b"].ahead) == ("main", 3)
+
+
+def test_git_timeout_is_an_error_not_unrelated_history(tmp_path, monkeypatch):
+    repo = make_repo(tmp_path / "proj")
+    git_run(repo, "worktree", "add", "-q", "-b", "f", str(tmp_path / "wt-f"))
+    real = git_graph.git
+
+    def slow_merge_base(cwd, *args):
+        if args[0] == "merge-base":
+            raise git_graph.GitError("timed out after 5 seconds")
+        return real(cwd, *args)
+
+    monkeypatch.setattr(git_graph, "git", slow_merge_base)
+    with pytest.raises(git_graph.GitError):
+        read_repo(str(repo))
 
 
 def test_tied_bases_resolve_in_bases_order(tmp_path):

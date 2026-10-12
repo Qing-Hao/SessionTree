@@ -79,6 +79,17 @@ def test_folder_outside_git_and_waiting_alert(tmp_path):
     assert [a["kind"] for a in board["alerts"]] == ["waiting"]
 
 
+def test_session_in_bare_repo_does_not_break_the_board(tmp_path):
+    bare = tmp_path / "bare.git"
+    bare.mkdir()
+    git_run(bare, "init", "-q", "--bare")
+    claude = tmp_path / "claude"
+    register(claude, psutil.Process(), A, bare)
+    board = BoardService(claude).refresh()
+    repo = board["repos"][0]
+    assert repo["error"] and [s["id"] for s in repo["nodes"][0]["sessions"]] == [A]
+
+
 def test_empty_when_no_claude_dir(tmp_path):
     board = BoardService(tmp_path / "missing").refresh()
     assert board["repos"] == [] and board["alerts"] == [] and board["warnings"] == []
