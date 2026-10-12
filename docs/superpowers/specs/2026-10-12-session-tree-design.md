@@ -94,8 +94,10 @@ Per repo, run with `git -C <path>`:
 
 - `rev-parse --show-toplevel` and `rev-parse --git-common-dir`: find the repo a folder belongs to. Linked worktrees in sibling folders, such as `Agent-Platform-metadata`, share the main repo's common dir and are grouped into one card.
 - `worktree list --porcelain`: worktree path, HEAD sha, branch or detached.
-- `branch --format=%(refname:short)`: local branches, used for the collapsed "other branches" list and for base detection.
-- `merge-base` and `rev-list --count`: fork inference and ahead/behind counts (see 5.2).
+- `for-each-ref refs/heads` and `refs/remotes`: local branches (for the collapsed "other branches" list and base detection) and remote-tracking bases such as `origin/Dev`.
+- `for-each-ref --merged=<base>`: branches already inside a base.
+- `for-each-ref --format=%(ahead-behind:<sha>)` (git 2.41 or later): ahead/behind counts against every candidate in one call. Older git falls back to `rev-list --left-right --count` per pair (see 5.2).
+- `reflog show refs/heads/<branch>`: only to settle a parent loop between sibling branches.
 
 ## 5. Model
 
@@ -118,23 +120,33 @@ Board
 
 ### 5.2 Fork inference
 
-Git does not record which branch a branch was created from, so the parent is inferred. Refs considered: every worktree's branch (or sha if detached), plus local base branches from a fixed list (`main`, `master`, `Dev`, `dev`, `develop`, `Staging`, `staging`).
+Git does not record which branch a branch was created from, so the parent is inferred. Refs considered:
+
+- every worktree's branch (or sha if detached);
+- bases: local branches from a fixed list (`main`, `master`, `Dev`, `dev`, `develop`, `Staging`, `staging`) and their remote-tracking copies such as `origin/Dev`, so a stale local base does not hide where newer branches came from;
+- local branches without a worktree, unless already merged into a base. A merged branch can never beat the base that holds it, so leaving it out changes no result and saves git calls.
 
 For each worktree ref `B` that is not a base:
 
-1. For each other ref `P`: `mb = merge-base(B, P)`, `dist = rev-list --count mb..B`, `behind = rev-list --count B..P`.
+1. For each other ref `P`: `dist` = commits in `B` not in `P`, `behind` = commits in `P` not in `B`. When `dist` equals all of `B`'s commits, the histories are unrelated and `P` is skipped.
 2. Skip `P` when `dist == 0 and behind > 0`, because then `P` forked from `B`, not the other way round.
 3. Skip `P` when `dist == 0 and behind == 0` and `P` is not a base. Two branches at the same commit must not point at each other.
-4. The parent is the remaining `P` with the smallest `dist`. On a tie, prefer a base.
-5. `ahead = rev-list --count P..B`.
+4. The parent is the remaining `P` with the smallest `dist`. On a tie, prefer a base, in list order, local before remote.
+5. `ahead = dist`.
 
-Base branches are roots. A base without a worktree becomes a ghost node only if some node's parent is that base.
+A branch without a worktree that becomes a parent is shown as a ghost node and gets its own parent by the same rules. Bases are roots, and a base without a worktree becomes a ghost node only if some node's parent is that base.
 
-Probe results on this machine (2026-10-12) that the implementation must reproduce:
+**Parent loops.** Two siblings that split from a commit that is no branch tip pick each other. In a loop, a pick is kept only when the parent's reflog shows it committed the fork commit (it appears in the reflog other than as the creation entry). Every other member re-picks outside the loop. Without reflog evidence, all members re-pick, so siblings from a deleted branch both point at the base.
 
-- Agent-Platform: `Dev → config/split-metadata-config-version (+5) → feature/agent-visualisation (+17) → feature/live-config (+7)`.
-- AI_Support_Team: `Dev → feature/telegram-html-streaming (+6) → feature/logfire-instrumentation (+34)`.
-- Platform-Integration: 8 worktrees under `Dev`, with `review-528` and `feature/chat-agent-hierarchical-with-skills-memory` under `pr-530`.
+**Extra labels.** A node with its own commits whose tip is already inside a base shows "merged into <base>". A local base with a remote copy shows how many commits it is behind that copy.
+
+Probe results on this machine (2026-10-12), checked against `git log --graph` and the reflogs:
+
+- Agent-Platform: `origin/Dev → feature/refactor-cleanup (ghost, +7) → feature/live-config (+1, −1)`, `origin/Dev → feature/agent-visualisation (+0)`, `Dev → config/split-metadata-config-version (+5, merged into origin/Dev)`, local `Dev` 22 behind `origin/Dev`.
+- AI_Support_Team: `origin/Dev → fix/refactor (ghost, +1) → feature/logfire-instrumentation (+2)`, `Dev → feature/telegram-html-streaming (+6, merged into origin/Dev)`.
+- Platform-Integration: main checkout on `Dev` (4 behind `origin/Dev`), `pr-452` under `origin/Dev` (+49), `review-528` and `feature/chat-agent-hierarchical-with-skills-memory` under `pr-530`, the rest under `Dev`.
+
+The first version of these rules (2026-10-12) considered only worktree branches and local bases. It drew Agent-Platform as `Dev → split-metadata (+5) → agent-visualisation (+17) → live-config (+7)`, which the reflogs show was wrong.
 
 **Caching:** git results are cached per repo, keyed by the tuple of worktree HEAD shas. They are recomputed only when a HEAD changes, so the 3-second poll stays cheap.
 

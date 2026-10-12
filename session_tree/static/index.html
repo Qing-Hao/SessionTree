@@ -107,6 +107,7 @@ button { font: inherit; color: inherit; }
 .delta .a { color: var(--ok); } .delta .b.far { color: var(--warn); }
 .where { font-family: var(--mono); font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
 .where.main { color: var(--fg); background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+.where.stale { color: var(--warn); }
 .add { margin-left: auto; border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 0 7px; font-size: 11.5px; color: var(--muted); cursor: pointer; line-height: 18px; }
 .add:hover { color: var(--fg); border-color: var(--line-strong); }
 .note { font-size: 11.5px; color: var(--muted); margin: 1px 0; }
@@ -286,12 +287,15 @@ function nodeRow(r, n, d) {
     return `<div class="node ${dim ? "dim" : ""}" style="--d:0"><span class="dot ${nodeState(n)}" data-node="${esc(n.id)}"></span>
       <div class="nhead"><span class="where">${esc(n.where)}</span>${r.error ? "" : addButton(n.path, n.id)}</div>${list}</div>`;
   }
+  const delta = n.parent ? `<span class="delta" title="Commits ahead of / behind ${esc(n.parent)}"><span class="a">+${n.ahead}</span> <span class="b ${n.behind > 50 ? "far" : ""}">−${n.behind}</span></span>` : "";
+  const merged = n.merged_into ? `<span class="where">merged into ${esc(n.merged_into)}</span>` : "";
+  const stale = n.upstream_behind ? `<span class="where stale" title="Local ${esc(n.branch)} is behind ${esc(n.upstream)}; git pull updates it">${n.upstream_behind} behind ${esc(n.upstream)}</span>` : "";
   if (n.ghost) {
-    return `<div class="node ghost ${filter !== "all" ? "dim" : ""}" style="--d:${d}"><span class="dot ghost" data-node="${esc(n.id)}"></span>
-      <div class="nhead"><span class="branch">${esc(n.id)}</span><span class="where">no worktree · base</span></div></div>`;
+    const kind = n.kind === "remote" ? "remote · base" : n.kind === "branch" ? "no worktree" : "no worktree · base";
+    return `<div class="node ghost ${filter !== "all" ? "dim" : ""}" style="--d:${d}"><span class="dot ghost" data-node="${esc(n.id)}" ${n.parent ? `data-parent="${esc(n.parent)}"` : ""}></span>
+      <div class="nhead"><span class="branch">${esc(n.id)}</span>${delta}<span class="where">${kind}</span>${merged}${stale}</div></div>`;
   }
   const label = n.detached ? `${esc(n.id)} <span class="where">detached @ ${esc(n.sha)}</span>` : esc(n.id);
-  const delta = n.parent ? `<span class="delta" title="Commits ahead of / behind ${esc(n.parent)}"><span class="a">+${n.ahead}</span> <span class="b ${n.behind > 50 ? "far" : ""}">−${n.behind}</span></span>` : "";
   const where = n.is_main ? `<span class="where main">main checkout</span>` : `<span class="where">${esc(n.where)}</span>`;
   const liveCount = n.sessions.filter(s => s.live).length;
   const shared = n.shared ? `<p class="note warn">${liveCount} live sessions share this worktree. Their edits can overwrite each other.</p>` : "";
@@ -299,7 +303,7 @@ function nodeRow(r, n, d) {
     .map(s => `<p class="note">Session ${esc(s.name)} ran on <span class="mono">${esc(s.ran_on)}</span>; this worktree is now on <span class="mono">${esc(n.branch)}</span>.</p>`).join("");
   return `<div class="node ${dim ? "dim" : ""}" style="--d:${d}">
     <span class="dot ${nodeState(n)}" data-node="${esc(n.id)}" ${n.parent ? `data-parent="${esc(n.parent)}"` : ""}></span>
-    <div class="nhead"><span class="branch ${n.detached ? "detached" : ""}">${label}</span>${delta}${where}${addButton(n.path, n.id)}</div>
+    <div class="nhead"><span class="branch ${n.detached ? "detached" : ""}">${label}</span>${delta}${where}${merged}${stale}${addButton(n.path, n.id)}</div>
     ${shared}${drift}${list}
   </div>`;
 }
