@@ -76,18 +76,18 @@ class ServerThread:
 
 
 def make_icon(size: int = 64) -> Image.Image:
-    """Draw the tray icon: a blue tile with a small branch graph (drawn 4x, then downscaled)."""
+    """Draw the tray icon: a round green badge with a bold white fork (drawn 4x, then downscaled)."""
     s = size * 4
     img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((0, 0, s - 1, s - 1), radius=s // 5, fill=(43, 89, 217, 255))
-    white, green, w = (255, 255, 255, 255), (76, 195, 138, 255), s // 14
-    x1, x2, top, mid, bottom = s * 0.34, s * 0.68, s * 0.22, s * 0.56, s * 0.80
-    d.line((x1, top, x1, bottom), fill=white, width=w)
-    d.arc((x1 - (x2 - x1), top + (mid - top) * 0.2, x2, mid + (mid - top) * 0.8), 0, 90, fill=white, width=w)
-    r = s // 10
-    for (cx, cy), color in (((x1, top), white), ((x1, bottom), white), ((x2, mid), green)):
-        d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=color)
+    d.ellipse((0, 0, s - 1, s - 1), fill=(22, 163, 108, 255))
+    white, w, r = (255, 255, 255, 255), s // 9, s // 9
+    cx, base, fork = s * 0.5, s * 0.78, s * 0.52
+    lx, rx, tip = s * 0.30, s * 0.70, s * 0.26
+    for end in ((cx, base), (lx, tip), (rx, tip)):
+        d.line((cx, fork, *end), fill=white, width=w)
+    for x, y in ((cx, base), (lx, tip), (rx, tip)):
+        d.ellipse((x - r, y - r, x + r, y + r), fill=white)
     return img.resize((size, size), Image.LANCZOS)
 
 
