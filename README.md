@@ -29,7 +29,7 @@ Install all of these before setup. Run the checks in PowerShell. Versions are th
 | [uv](https://docs.astral.sh/uv/) on PATH | `uv --version` | 0.8.22 | installs Python 3.12+ and the dependencies |
 | Git on PATH | `git --version` | 2.51.0 | branch graph (2.41 or later is faster) |
 | Windows Terminal | `(Get-AppxPackage Microsoft.WindowsTerminal).Version` | 1.24 | Go to terminal, Resume, + session |
-| VS Code, with `code` on PATH | `code --version` | 1.108.0 | the **code** button |
+| VS Code (its installer registers `vscode://` links) | `Test-Path Registry::HKEY_CLASSES_ROOT\vscode` should print `True` | 1.108.0 | the **code** button |
 | Microsoft Edge (comes with Windows 11) or Google Chrome | `Test-Path "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"` should print `True` | Edge | the dashboard's own window |
 
 ## What you get
@@ -46,7 +46,7 @@ Install all of these before setup. Run the checks in PowerShell. Versions are th
   - **Go to terminal:** brings the session's existing Windows Terminal tab to the front.
   - **Resume:** reopens a closed session in a new tab.
   - **+ session:** starts a new Claude Code session in that worktree.
-  - **code:** opens the worktree in VS Code, the same as `code .` run in that folder.
+  - **code:** opens the worktree in VS Code through a `vscode://file/` link and brings its window to the front. The first time, the browser asks whether to open Visual Studio Code; tick "Always allow" to skip the prompt next time.
 
 ## Setup
 
@@ -173,13 +173,13 @@ The tray app writes a log to `$env:USERPROFILE\.session-tree\session-tree.log`. 
 | No tray icon after sign-in | Look behind the **^** arrow. Check that `Session Tree.lnk` is in `shell:startup` (paste that into Win+R). Read the log. |
 | Dashboard won't load, or a foreground run stops with `[Errno 10048]` | Something already uses port 4317, often the tray app itself. `Get-NetTCPConnection -LocalPort 4317` shows the process. Quit the tray app, or run on another port: `uv run python -m session_tree --open --port 4320`. |
 | **Go to terminal** says no tab was found | It finds the tab by the session's title. Sessions without a title yet cannot be found; pick the tab from the list it shows, or use **Open a second copy**. |
-| **code** says "VS Code (code) is not on PATH" | Rerun the VS Code installer with "Add to PATH" ticked (on by default), or add VS Code's `bin` folder to your user PATH. Then sign out and in, so the tray app sees the new PATH. |
+| **code** does nothing | The `vscode://` link handler is missing. Rerun the VS Code installer, which registers it. If you once chose "Cancel" on the browser's "Open Visual Studio Code?" prompt, click **code** again and choose "Open". |
 | A repo is missing | Only repos with a live session, or one closed in the last 24 hours, are shown. Add others to `pinned_repos`. |
 | A branch's parent looks wrong | Run `git fetch`, then wait for the next refresh. If it is still wrong, send the repo's `git log --graph --oneline --all -n 60` (see Feedback). |
 
 ## Privacy and security
 
-- The server listens on `127.0.0.1` only, so other machines cannot reach it. It rejects every request whose Host is not `127.0.0.1` or `localhost`. Actions (Go to terminal, Resume, + session, code) also need a custom header and a local Origin, so other websites open in your browser cannot trigger them.
+- The server listens on `127.0.0.1` only, so other machines cannot reach it. It rejects every request whose Host is not `127.0.0.1` or `localhost`. Actions (Go to terminal, Resume, + session) also need a custom header and a local Origin, so other websites open in your browser cannot trigger them.
 - It reads `$env:USERPROFILE\.claude\sessions` and `$env:USERPROFILE\.claude\projects` and runs `git` in your repos. Nothing is sent anywhere, and the app never writes session prompts to its log.
 - Session prompts can contain secrets, such as tokens or login links, and the dashboard shows the last prompt of each session. Take care when screen sharing it.
 
@@ -201,7 +201,7 @@ Project layout:
 | `session_tree/transcripts.py` | title, last prompt, folder and branch from the session transcripts |
 | `session_tree/git_graph.py` | worktrees, branch tips and fork inference |
 | `session_tree/board.py` | puts repos, nodes, sessions and alerts together; refreshed every 3 s |
-| `session_tree/terminal.py`, `focus_tab.ps1` | opens and focuses Windows Terminal tabs, and opens VS Code |
+| `session_tree/terminal.py`, `focus_tab.ps1` | opens and focuses Windows Terminal tabs |
 | `session_tree/server.py` | FastAPI app: the page, `/api/board` and the actions |
 | `session_tree/tray.py` | tray icon, single instance check, login shortcuts |
 | `session_tree/static/index.html` | the whole frontend, no build step |

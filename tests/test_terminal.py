@@ -63,33 +63,6 @@ def test_launch_falls_back_to_new_console(monkeypatch):
     assert calls[0][0] == ["C:\\bin\\claude.exe"] and calls[0][1]["cwd"] == "C:\\r"
 
 
-def test_editor_runs_code_exe_beside_the_cmd_shim(tmp_path):
-    (tmp_path / "bin").mkdir()
-    (tmp_path / "bin" / "code.cmd").write_text("")
-    (tmp_path / "Code.exe").write_text("")
-    assert terminal.editor_command(str(tmp_path / "bin" / "code.cmd"), "C:\\r\\a&b") == [str(tmp_path / "Code.exe"), "C:\\r\\a&b"]
-    # Python 3.12.0's which() can return the extensionless bash shim that sits next to code.cmd.
-    assert terminal.editor_command(str(tmp_path / "bin" / "code"), "C:\\r") == [str(tmp_path / "Code.exe"), "C:\\r"]
-    assert terminal.editor_command("C:\\bin\\code.exe", "C:\\r") == ["C:\\bin\\code.exe", "C:\\r"]
-    with pytest.raises(LaunchError, match="Code.exe"):
-        terminal.editor_command(str(tmp_path / "other" / "bin" / "code.cmd"), "C:\\r")
-
-
-def test_open_editor_starts_vscode_with_a_clean_env(monkeypatch):
-    calls = []
-    monkeypatch.setattr(terminal.shutil, "which", lambda exe: "C:\\vs\\Code.exe" if exe == "code" else None)
-    monkeypatch.setattr(terminal.subprocess, "Popen", lambda cmd, **kw: calls.append((cmd, kw)))
-    monkeypatch.setenv("CLAUDECODE", "1")
-    assert Launcher().open_editor("C:\\r")["command"] == ["C:\\vs\\Code.exe", "C:\\r"]
-    assert calls[0][0] == ["C:\\vs\\Code.exe", "C:\\r"] and "CLAUDECODE" not in calls[0][1]["env"]
-
-
-def test_open_editor_without_vscode_raises(monkeypatch):
-    monkeypatch.setattr(terminal.shutil, "which", lambda exe: None)
-    with pytest.raises(LaunchError, match=r"VS Code \(code\) is not on PATH"):
-        Launcher().open_editor("C:\\r")
-
-
 def test_launch_without_claude_raises(monkeypatch):
     monkeypatch.setattr(terminal.shutil, "which", lambda exe: None)
     with pytest.raises(LaunchError, match="claude"):

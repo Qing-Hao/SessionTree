@@ -1,6 +1,7 @@
 """System-tray app: run the dashboard server in the background with Open, Restart and Quit."""
 from __future__ import annotations
 
+import io
 import json
 import logging
 import os
@@ -18,6 +19,7 @@ from PIL import Image, ImageDraw
 
 APP_DIR = Path.home() / ".session-tree"
 SHORTCUT_NAME = "Session Tree.lnk"
+ICO_SIZES = [(16, 16), (32, 32), (48, 48), (64, 64), (256, 256)]
 BROWSER_PATHS = (
     r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe",
     r"%ProgramFiles%\Microsoft\Edge\Application\msedge.exe",
@@ -91,6 +93,13 @@ def make_icon(size: int = 64) -> Image.Image:
     return img.resize((size, size), Image.LANCZOS)
 
 
+def icon_ico() -> bytes:
+    """The tray icon as multi-size .ico bytes, for shortcuts and the page favicon."""
+    buf = io.BytesIO()
+    make_icon(256).save(buf, format="ICO", sizes=ICO_SIZES)
+    return buf.getvalue()
+
+
 def shortcut_spec(repo_dir: Path) -> dict[str, str]:
     """Shortcut that starts the tray app from this project's venv without a console window."""
     return {"target": str(repo_dir / ".venv" / "Scripts" / "pythonw.exe"), "args": "-m session_tree --tray",
@@ -120,7 +129,7 @@ def install(repo_dir: Path, startup_dir: Path | None = None, start_menu_dir: Pat
     """Create the Startup (run at login) and Start menu shortcuts; returns their paths."""
     app_dir.mkdir(parents=True, exist_ok=True)
     ico = app_dir / "session-tree.ico"
-    make_icon(256).save(ico, sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (256, 256)])
+    ico.write_bytes(icon_ico())
     spec = shortcut_spec(repo_dir)
     made = []
     for folder in (startup_dir or default_startup_dir(), start_menu_dir or default_start_menu_dir()):

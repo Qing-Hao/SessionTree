@@ -54,26 +54,8 @@ def launch_env(env: dict[str, str]) -> dict[str, str]:
             if k not in drop and not k.startswith(("CLAUDE_CODE_SESSION_", "CLAUDE_CODE_MESSAGING_"))}
 
 
-def editor_command(code_path: str, folder: str) -> list[str]:
-    """Run VS Code's Code.exe on folder; shims in bin\\ are skipped so cmd.exe never parses the path."""
-    if code_path.lower().endswith(".exe"):
-        return [code_path, folder]
-    exe = Path(code_path).parent.parent / "Code.exe"
-    if not exe.is_file():
-        raise LaunchError(f"Code.exe not found next to {code_path}")
-    return [str(exe), folder]
-
-
 class Launcher:
     """Runs real processes; tests replace it with a fake."""
-
-    def open_editor(self, folder: str) -> dict:
-        code = shutil.which("code")
-        if code is None:
-            raise LaunchError("VS Code (code) is not on PATH")
-        cmd = editor_command(code, folder)
-        subprocess.Popen(cmd, cwd=folder, env=launch_env(dict(os.environ)), close_fds=True)
-        return {"ok": True, "command": cmd}
 
     def launch(self, spec: LaunchSpec) -> dict:
         program = shutil.which(spec.program[0])

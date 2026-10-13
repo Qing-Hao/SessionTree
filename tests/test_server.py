@@ -1,5 +1,8 @@
+import io
+
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from session_tree.server import create_app
 from session_tree.terminal import LaunchError
@@ -29,13 +32,7 @@ class FakeService:
 
 class FakeLauncher:
     def __init__(self, fail=False):
-        self.launched, self.focused, self.opened, self.fail = [], [], [], fail
-
-    def open_editor(self, path):
-        if self.fail:
-            raise LaunchError("VS Code (code) is not on PATH")
-        self.opened.append(path)
-        return {"ok": True, "command": ["Code.exe", path]}
+        self.launched, self.focused, self.fail = [], [], fail
 
     def launch(self, spec):
         if self.fail:
@@ -61,6 +58,15 @@ def client(launcher):
 def test_board_and_index(client):
     assert client.get("/api/board").json()["repos"][0]["name"] == "repo"
     assert "Session Tree" in client.get("/").text
+
+
+def test_favicon_is_the_tray_icon_as_multi_size_ico(client):
+    r = client.get("/favicon.ico")
+    assert r.status_code == 200 and r.headers["content-type"] == "image/x-icon"
+    img = Image.open(io.BytesIO(r.content))
+    assert img.format == "ICO" and {(16, 16), (32, 32), (256, 256)} <= img.info["sizes"]
+    assert 'rel="icon" href="/favicon.ico?v=1"' in client.get("/").text
+    assert client.get("/favicon.ico?v=1").content == r.content
 
 
 def test_foreign_host_is_rejected(client):
@@ -103,18 +109,9 @@ def test_new_session_only_for_known_worktree(client, launcher):
     assert client.post("/api/worktrees/new", headers=OK, json={"path": "C:\\Windows"}).status_code == 404
 
 
-def test_open_code_only_for_known_worktree(client, launcher):
-    assert client.post("/api/worktrees/code", json={"path": "C:\\repo"}).status_code == 403
-    assert client.post("/api/worktrees/code", headers=OK, json={"path": "c:\\REPO"}).status_code == 200
-    assert launcher.opened == ["C:\\repo"]
-    assert client.post("/api/worktrees/code", headers=OK, json={"path": "C:\\Windows"}).status_code == 404
-    assert launcher.opened == ["C:\\repo"]
-
-
-def test_missing_vscode_returns_503():
-    client = TestClient(create_app(FakeService(), FakeLauncher(fail=True)), base_url="http://127.0.0.1:4317")
-    r = client.post("/api/worktrees/code", headers=OK, json={"path": "C:\\repo"})
-    assert r.status_code == 503 and r.json()["detail"] == "VS Code (code) is not on PATH"
+def test_code_endpoint_is_gone(client):
+    # The code button now opens a vscode:// link in the browser instead.
+    assert client.post("/api/worktrees/code", headers=OK, json={"path": "C:\\repo"}).status_code in (404, 405)
 
 
 def test_missing_claude_returns_503():

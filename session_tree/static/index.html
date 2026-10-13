@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Session Tree</title>
+<!-- ?v= gets past Edge's memory of the old 404; bump it when the icon changes. -->
+<link rel="icon" href="/favicon.ico?v=1">
 <style>
 /* Layout: one-screen board of repo cards in flowing columns; each card is a git graph of local worktree branches (fork lines + ahead/behind), with sessions hanging off the branch they run on. */
 :root {
@@ -51,7 +53,8 @@ button { font: inherit; color: inherit; }
 .mono { font-family: var(--mono); }
 
 .top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
-.top h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.top h1 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+.top h1 img { width: 24px; height: 24px; flex: none; }
 .top .sub { color: var(--muted); font-family: var(--mono); font-size: 12px; }
 .filters { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { display: inline-flex; align-items: baseline; gap: 6px; cursor: pointer; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-weight: 500; }
@@ -109,6 +112,7 @@ button { font: inherit; color: inherit; }
 .where.main { color: var(--fg); background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
 .where.stale { color: var(--warn); }
 .add { margin-left: auto; border: 1px solid var(--line); background: transparent; border-radius: 6px; padding: 0 7px; font-size: 11.5px; color: var(--muted); cursor: pointer; line-height: 18px; }
+a.add { text-decoration: none; }
 .add:hover { color: var(--fg); border-color: var(--line-strong); }
 .add.next { margin-left: 0; }
 .note { font-size: 11.5px; color: var(--muted); margin: 1px 0; }
@@ -162,13 +166,15 @@ details.loose summary { cursor: pointer; color: var(--faint); font-size: 11.5px;
 
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 @keyframes flash { 0% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+::view-transition-group(*) { animation-duration: 220ms; animation-timing-function: cubic-bezier(0.2, 0, 0, 1); overflow: clip; border-radius: 12px; }
+::view-transition-group(root) { border-radius: 0; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
-    <h1>Session Tree</h1>
+    <h1><img src="/favicon.ico" alt="">Session Tree</h1>
     <span class="sub" id="sub">Loading…</span>
     <div class="filters" id="filters" role="group" aria-label="Highlight sessions"></div>
     <span class="live" id="live"><i></i><span id="fresh">Connecting…</span></span>
@@ -276,8 +282,13 @@ function sessionLine(s, r, n) {
   </li>`;
 }
 
+// The browser hands focus to VS Code, so its window comes to the front.
+function vscodeUri(path) {
+  return "vscode://file/" + encodeURI(path.replace(/\\/g, "/")).replace(/#/g, "%23") + "/";
+}
+
 function addButton(path, label) {
-  return `<button type="button" class="add" data-act="code" data-path="${esc(path)}" title="Open ${esc(label)} in VS Code">code</button><button type="button" class="add next" data-act="new" data-path="${esc(path)}" title="Start a new Claude Code session in ${esc(label)}">+ session</button>`;
+  return `<a class="add" href="${esc(vscodeUri(path))}" title="Open ${esc(label)} in VS Code">code</a><button type="button" class="add next" data-act="new" data-path="${esc(path)}" title="Start a new Claude Code session in ${esc(label)}">+ session</button>`;
 }
 
 function nodeRow(r, n, d) {
@@ -309,7 +320,7 @@ function nodeRow(r, n, d) {
   </div>`;
 }
 
-function card(r) {
+function card(r, i) {
   const wts = r.nodes.filter(n => !n.ghost).length;
   const live = r.nodes.reduce((k, n) => k + n.sessions.filter(s => s.live).length, 0);
   const sharedCount = r.nodes.filter(n => n.shared).length;
@@ -319,7 +330,7 @@ function card(r) {
   const n = r.loose_branches.length;
   const loose = n ? `<details class="loose" data-loose="${esc(r.key)}" ${openLoose.has(r.key) ? "open" : ""}><summary>${n} other branch${n === 1 ? "" : "es"} without a worktree</summary><div class="bchips">${r.loose_branches.map(b => `<span>${esc(b)}</span>`).join("")}</div></details>` : "";
   const note = r.error ? `<p class="card-error">${esc(r.error)}</p>` : r.nogit ? `<p class="nogit">Not a git repository, so there is no branch graph.</p>` : "";
-  return `<article class="card" data-key="${esc(r.key)}">
+  return `<article class="card" data-key="${esc(r.key)}" style="view-transition-name: card-${i}">
     <div class="card-head"><span class="rdot ${rs}"></span><h2>${esc(r.name)}</h2><span class="counts">${counts}</span><span class="path">${esc(shortPath(r.root))}</span></div>
     <div class="card-body">${note}
       <div class="graph"><svg aria-hidden="true"></svg>${ordered(r).map(x => nodeRow(r, x.n, x.d)).join("")}</div>
@@ -442,6 +453,32 @@ function showToast({ title, msg = "", cmd = "", tabs = null, sid = "", error = f
 
 function findSession(id) { return allSessions().find(x => x.s.id === id); }
 
+// Glide cards to their new spots; skipped without View Transitions or under reduced motion.
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+function animated(update) {
+  if (!document.startViewTransition || reduceMotion.matches) { update(); return; }
+  document.startViewTransition(update);
+}
+
+// Rebuild only this session's row, so the rest of the board keeps its DOM and animations.
+function refreshSession(id) {
+  const x = id && findSession(id);
+  const btn = x && document.querySelector(`.sess[data-sid="${CSS.escape(id)}"]`);
+  if (btn) btn.closest("li").outerHTML = sessionLine(x.s, x.r, x.n);
+}
+
+function toggleSession(id) {
+  const prev = openId;
+  openId = openId === id ? null : id;
+  animated(() => {
+    refreshSession(prev);
+    if (openId && openId !== prev) refreshSession(openId);
+    drawGraphs();
+    const btn = document.querySelector(`.sess[data-sid="${CSS.escape(id)}"]`);
+    if (btn) btn.focus({ preventScroll: true });
+  });
+}
+
 function focusResult(res, sid, title) {
   if (res.result === "ok") return showToast({ title: `Switched to "${title}"`, autoHide: 2500 });
   if (res.result === "no_foreground") return showToast({ title: "Tab selected, but Windows kept this window in front", msg: "Look for the flashing Windows Terminal icon on the taskbar." });
@@ -469,9 +506,9 @@ document.addEventListener("click", e => {
     el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
     return;
   }
-  if (t.classList.contains("sess")) { openId = openId === t.dataset.sid ? null : t.dataset.sid; render(); return; }
+  if (t.classList.contains("sess")) { toggleSession(t.dataset.sid); return; }
   const a = t.dataset.act;
-  if (a === "close-detail") { openId = null; render(); return; }
+  if (a === "close-detail") { if (openId) toggleSession(openId); return; }
   if (a === "toast-close") { document.getElementById("toast").hidden = true; return; }
   if (a === "goto") {
     const x = findSession(t.dataset.sid);
@@ -493,12 +530,6 @@ document.addEventListener("click", e => {
     act(t, async () => {
       const res = await post("/api/worktrees/new", { path: t.dataset.path });
       showToast({ title: "Started a new Claude Code session", cmd: res.command.join(" "), autoHide: 6000 });
-    });
-  }
-  if (a === "code") {
-    act(t, async () => {
-      await post("/api/worktrees/code", { path: t.dataset.path });
-      showToast({ title: "Opening in VS Code", msg: t.dataset.path, autoHide: 3000 });
     });
   }
 });

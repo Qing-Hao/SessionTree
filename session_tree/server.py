@@ -5,11 +5,12 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from .board import find_node, find_session
 from .terminal import LaunchError, is_session_id, new_session_spec, resume_spec
+from .tray import icon_ico
 
 STATIC_DIR = Path(__file__).with_name("static")
 ALLOWED_HOSTS = {"127.0.0.1", "localhost"}
@@ -59,6 +60,12 @@ def create_app(service, launcher) -> FastAPI:
     def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-store"})
 
+    favicon = icon_ico()
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon_ico() -> Response:
+        return Response(favicon, media_type="image/x-icon", headers={"Cache-Control": "no-cache"})
+
     @app.get("/api/board")
     def board() -> dict:
         return service.snapshot()
@@ -84,15 +91,5 @@ def create_app(service, launcher) -> FastAPI:
         if node is None:
             raise HTTPException(404, "Unknown worktree")
         return run(new_session_spec(node["path"], node["id"]))
-
-    @app.post("/api/worktrees/code", dependencies=[Depends(require_local_post)])
-    def open_code(body: NewBody) -> dict:
-        node = find_node(service.snapshot(), body.path)
-        if node is None:
-            raise HTTPException(404, "Unknown worktree")
-        try:
-            return launcher.open_editor(node["path"])
-        except LaunchError as exc:
-            raise HTTPException(503, str(exc)) from exc
 
     return app
