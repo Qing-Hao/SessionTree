@@ -201,7 +201,7 @@ Project layout:
 | `session_tree/server.py` | FastAPI app: the page, `/api/board` and the actions |
 | `session_tree/tray.py` | tray icon, single instance check, login shortcuts |
 | `session_tree/static/index.html` | the whole frontend, no build step |
-| `docs/superpowers/` | design spec and implementation plan |
+| `docs/superpowers/specs/` | design spec: architecture decisions, data sources, fork inference |
 
 ## Feedback
 

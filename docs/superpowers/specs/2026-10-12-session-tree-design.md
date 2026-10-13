@@ -2,7 +2,7 @@
 
 Date: 2026-10-12
 Status: draft, waiting for review
-Mockup: [2026-10-12-session-tree-mockup.html](2026-10-12-session-tree-mockup.html) (also published at https://claude.ai/artifact/CjUJjfaHi16YLEsz5MqBsk)
+Mockup: https://claude.ai/artifact/CjUJjfaHi16YLEsz5MqBsk
 
 ## 1. Problem
 
