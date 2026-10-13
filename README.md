@@ -4,6 +4,10 @@ A local dashboard for people who run several Claude Code CLI sessions at once. I
 
 Once installed, it runs in the system tray, starts when you sign in, and shows the dashboard at http://127.0.0.1:4317 in its own window.
 
+![Session Tree dashboard with two mock repos: worktrees on a branch graph, each with its working, waiting or closed Claude Code session](docs/images/dashboard.png)
+
+*The repos, branches and sessions in this screenshot are mock data.*
+
 ## Current scope
 
 The tool is in development and shared for team trial. For now it supports only this setup:
