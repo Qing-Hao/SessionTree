@@ -40,10 +40,10 @@ def new_session_spec(path: str, title: str) -> LaunchSpec:
 
 
 def wt_command(spec: LaunchSpec, program_path: str) -> list[str]:
-    """New Windows Terminal tab running the program inside PowerShell; ';' is escaped as wt splits on it."""
+    """New Windows Terminal window running the program inside PowerShell; ';' is escaped as wt splits on it."""
     # Args are known values only (resolved exe path, validated session id), so the PowerShell string is safe.
     ps = "& '" + program_path.replace("'", "''") + "'" + "".join(" " + a for a in spec.program[1:])
-    return ["wt", "-w", "0", "nt", "-d", spec.cwd.replace(";", "\\;"), "--title", spec.title.replace(";", ","),
+    return ["wt", "-w", "new", "nt", "-d", spec.cwd.replace(";", "\\;"), "--title", spec.title.replace(";", ","),
             "powershell.exe", "-NoLogo", "-NoExit", "-Command", ps]
 
 

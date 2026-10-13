@@ -522,7 +522,7 @@ document.addEventListener("click", e => {
   if (a === "resume") {
     act(t, async () => {
       const res = await post(`/api/sessions/${encodeURIComponent(t.dataset.sid)}/resume`);
-      showToast({ title: res.via === "wt" ? "Opened a new Windows Terminal tab" : "Opened a new console window", cmd: res.command.join(" "), autoHide: 6000 });
+      showToast({ title: res.via === "wt" ? "Opened a new Windows Terminal window" : "Opened a new console window", cmd: res.command.join(" "), autoHide: 6000 });
     });
     return;
   }

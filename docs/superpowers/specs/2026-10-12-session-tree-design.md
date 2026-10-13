@@ -27,7 +27,7 @@ Session Tree is a local web dashboard that wraps the Claude Code CLI. It does no
 - One card per repo showing a git graph of the local worktree branches, with sessions attached to the worktree they run in.
 - Actions:
   - **Go to terminal**: switch to the Windows Terminal tab already running a live session.
-  - **Resume**: open a closed session in a new Windows Terminal tab.
+  - **Resume**: open a closed session in a new Windows Terminal window.
   - **New session**: start `claude` in a chosen worktree.
   - **Open a second copy** of a live session, behind a warning.
 
@@ -44,7 +44,7 @@ Session Tree is a local web dashboard that wraps the Claude Code CLI. It does no
 | Topic | Decision |
 |---|---|
 | Form factor | Local web dashboard served from `localhost` |
-| Opening sessions | New Windows Terminal tab (`wt`) running the real CLI |
+| Opening sessions | New Windows Terminal window (`wt -w new`) running the real CLI |
 | Going to a live session | Focus its existing tab by title (proven by spike, see 6.4) |
 | Agents | Claude Code only in v1; Codex CLI in v2 |
 | Live status | Read Claude Code's own session registry; no hooks needed |
@@ -200,8 +200,8 @@ git_visualisation/
 
 Commands are built as argument lists, never shell strings.
 
-- **Resume:** `["wt", "-w", "0", "nt", "-d", <cwd>, "--title", <aiTitle or name>, "claude", "--resume", <sessionId>]`
-- **New session:** `["wt", "-w", "0", "nt", "-d", <worktree path>, "--title", <branch>, "claude"]`
+- **Resume:** `["wt", "-w", "new", "nt", "-d", <cwd>, "--title", <aiTitle or name>, "claude", "--resume", <sessionId>]`
+- **New session:** `["wt", "-w", "new", "nt", "-d", <worktree path>, "--title", <branch>, "claude"]`
 - **Go to terminal:** runs `powershell -NoProfile -File focus_tab.ps1 -Target <aiTitle>`. The script:
   1. Finds Windows Terminal windows (`CASCADIA_HOSTING_WINDOW_CLASS`).
   2. Finds a `TabItem` whose name, after stripping leading non-letter and non-digit characters such as `✳` or `◐`, equals the target.
@@ -294,7 +294,7 @@ Process launches are mocked in tests; no real terminals are opened.
 1. **Count matches:** the board's live count equals the number of `claude.exe` processes with a registry file (screenshot plus `Get-Process claude` output).
 2. **Graph matches the probe:** the Agent-Platform card shows `Dev → split-metadata (+5) → agent-visualisation (+17) → live-config (+7)`.
 3. **Close detection:** close one terminal tab; within one poll (3 seconds or less) that session turns Closed (before and after screenshots).
-4. **Resume:** click Resume; a new Windows Terminal tab opens in the right folder with the conversation restored.
+4. **Resume:** click Resume; a new Windows Terminal window opens in the right folder with the conversation restored.
 5. **Go to terminal from the browser:** click it on a session whose window is behind the browser; that tab comes to the front. Record which method worked (A, B or C). Repeat for a tab inside the 2-tab window.
 6. **New session:** click `+ session` on a worktree; `claude` starts in that folder.
 

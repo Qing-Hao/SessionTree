@@ -10,13 +10,13 @@ SID = "28c2caf5-ee1f-478f-91c5-89724c10169c"
 def test_resume_command_runs_claude_inside_powershell():
     spec = resume_spec("C:\\Users\\me\\Agent-Platform", "Branch status", SID)
     assert wt_command(spec, "C:\\bin\\claude.exe") == [
-        "wt", "-w", "0", "nt", "-d", "C:\\Users\\me\\Agent-Platform", "--title", "Branch status",
+        "wt", "-w", "new", "nt", "-d", "C:\\Users\\me\\Agent-Platform", "--title", "Branch status",
         "powershell.exe", "-NoLogo", "-NoExit", "-Command", f"& 'C:\\bin\\claude.exe' --resume {SID}"]
 
 
 def test_new_session_command():
     spec = new_session_spec("C:\\r\\wt-a", "feat-a")
-    assert wt_command(spec, "claude.exe") == ["wt", "-w", "0", "nt", "-d", "C:\\r\\wt-a", "--title", "feat-a",
+    assert wt_command(spec, "claude.exe") == ["wt", "-w", "new", "nt", "-d", "C:\\r\\wt-a", "--title", "feat-a",
                                               "powershell.exe", "-NoLogo", "-NoExit", "-Command", "& 'claude.exe'"]
 
 

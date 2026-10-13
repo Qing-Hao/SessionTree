@@ -44,8 +44,8 @@ Install all of these before setup. Run the checks in PowerShell. Versions are th
 - **Alerts** for two live sessions sharing one worktree, sessions waiting over 2 hours, and sessions whose worktree switched branch.
 - **Buttons on each row:**
   - **Go to terminal:** brings the session's existing Windows Terminal tab to the front.
-  - **Resume:** reopens a closed session in a new tab.
-  - **+ session:** starts a new Claude Code session in that worktree.
+  - **Resume:** reopens a closed session in a new window.
+  - **+ session:** starts a new Claude Code session in that worktree, in a new window.
   - **code:** opens the worktree in VS Code through a `vscode://file/` link and brings its window to the front. The first time, the browser asks whether to open Visual Studio Code; tick "Always allow" to skip the prompt next time.
 
 ## Setup
@@ -201,7 +201,7 @@ Project layout:
 | `session_tree/transcripts.py` | title, last prompt, folder and branch from the session transcripts |
 | `session_tree/git_graph.py` | worktrees, branch tips and fork inference |
 | `session_tree/board.py` | puts repos, nodes, sessions and alerts together; refreshed every 3 s |
-| `session_tree/terminal.py`, `focus_tab.ps1` | opens and focuses Windows Terminal tabs |
+| `session_tree/terminal.py`, `focus_tab.ps1` | opens Windows Terminal windows and focuses tabs |
 | `session_tree/server.py` | FastAPI app: the page, `/api/board` and the actions |
 | `session_tree/tray.py` | tray icon, single instance check, login shortcuts |
 | `session_tree/static/index.html` | the whole frontend, no build step |
