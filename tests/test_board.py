@@ -12,14 +12,14 @@ B = "bbbbbbbb-0000-0000-0000-000000000002"
 C = "cccccccc-0000-0000-0000-000000000003"
 
 
-def register(claude, proc, sid, cwd, status="idle", status_ms=None):
+def register(claude, proc, sid, cwd, status="idle", status_ms=None, **extra):
     ft = int((proc.create_time() + FILETIME_EPOCH_OFFSET) * 10_000_000)
     d = claude / "sessions"
     d.mkdir(parents=True, exist_ok=True)
     (d / f"{proc.pid}.json").write_text(json.dumps({
         "pid": proc.pid, "sessionId": sid, "cwd": str(cwd), "name": f"n-{sid[:4]}", "status": status,
         "statusUpdatedAt": status_ms or int(time.time() * 1000), "startedAt": 1, "kind": "interactive",
-        "entrypoint": "cli", "procStart": str(ft)}), encoding="utf-8")
+        "entrypoint": "cli", "procStart": str(ft), **extra}), encoding="utf-8")
 
 
 def transcript(claude, sid, cwd, title="", branch="main", prompt="do it"):
@@ -77,6 +77,17 @@ def test_folder_outside_git_and_waiting_alert(tmp_path):
     repo = board["repos"][0]
     assert repo["nogit"] is True and repo["error"] is None and repo["name"] == "notes"
     assert [a["kind"] for a in board["alerts"]] == ["waiting"]
+
+
+def test_waiting_and_shell_states_keep_their_own_state(tmp_path):
+    repo = make_repo(tmp_path / "proj")
+    claude = tmp_path / "claude"
+    me = psutil.Process()
+    register(claude, me, A, repo, status="shell")
+    register(claude, me.parent(), B, repo, status="waiting", waitingFor="approve Bash")
+    board = BoardService(claude).refresh()
+    sessions = node(board, "main")["sessions"]
+    assert [(s["id"], s["state"], s["waiting_for"]) for s in sessions] == [(B, "waiting", "approve Bash"), (A, "shell", "")]
 
 
 def test_session_in_bare_repo_does_not_break_the_board(tmp_path):

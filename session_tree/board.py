@@ -15,7 +15,9 @@ from .transcripts import SessionInfo, TranscriptCache, find_transcripts
 CLOSED_WINDOW_S = 24 * 3600
 WAITING_ALERT_MS = 120 * 60 * 1000
 REPO_KEY_TTL_S = 60
-STATE_RANK = {"busy": 0, "idle": 1, "other": 2, "closed": 3}
+# Claude Code's registry writes status busy, shell, idle or waiting (waiting carries waitingFor).
+STATE_RANK = {"waiting": 0, "busy": 1, "shell": 1, "idle": 2, "other": 3, "closed": 4}
+ACTIVE_STATES = ("waiting", "busy", "shell")
 log = logging.getLogger(__name__)
 
 
@@ -125,14 +127,16 @@ def find_node(board: dict, path: str) -> dict | None:
 def _live_session(e: RegistryEntry, info: SessionInfo | None) -> dict:
     title = info.ai_title if info else ""
     return {"id": e.session_id, "name": e.name or e.session_id[:8],
-            "state": e.status if e.status in ("busy", "idle") else "other", "status_raw": e.status, "live": True,
+            "state": e.status if e.status in (*ACTIVE_STATES, "idle") else "other", "status_raw": e.status,
+            "waiting_for": e.waiting_for, "live": True,
             "title": title, "prompt": info.last_prompt if info else "", "cwd": e.cwd, "pid": e.pid,
             "since_ms": e.status_updated_ms, "started_ms": e.started_ms, "ran_on": info.git_branch if info else "",
             "can_focus": e.kind == "interactive" and e.entrypoint == "cli" and bool(title), "repo": None}
 
 
 def _closed_session(info: SessionInfo) -> dict:
-    return {"id": info.session_id, "name": info.session_id[:8], "state": "closed", "status_raw": "closed", "live": False,
+    return {"id": info.session_id, "name": info.session_id[:8], "state": "closed", "status_raw": "closed",
+            "waiting_for": "", "live": False,
             "title": info.ai_title, "prompt": info.last_prompt, "cwd": info.cwd, "pid": None,
             "since_ms": int(info.mtime * 1000), "started_ms": None, "ran_on": info.git_branch, "can_focus": False, "repo": None}
 
@@ -187,7 +191,7 @@ def _finish(repo: dict) -> dict:
 
 def _repo_rank(r: dict) -> tuple:
     ss = [s for n in r["nodes"] for s in n["sessions"]]
-    rank = (0 if any(s["state"] == "busy" for s in ss) else 1 if any(n["shared"] for n in r["nodes"])
+    rank = (0 if any(s["state"] in ACTIVE_STATES for s in ss) else 1 if any(n["shared"] for n in r["nodes"])
             else 2 if any(s["live"] for s in ss) else 3)
     return rank, r["name"].lower()
 

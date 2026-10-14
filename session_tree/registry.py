@@ -18,6 +18,7 @@ class RegistryEntry:
     cwd: str
     name: str
     status: str
+    waiting_for: str
     status_updated_ms: int
     started_ms: int
     kind: str
@@ -64,6 +65,7 @@ def _parse(raw: dict) -> RegistryEntry:
         cwd=str(raw["cwd"]),
         name=str(raw.get("name") or ""),
         status=str(raw.get("status") or ""),
+        waiting_for=str(raw.get("waitingFor") or ""),
         status_updated_ms=int(raw.get("statusUpdatedAt") or raw.get("updatedAt") or 0),
         started_ms=int(raw.get("startedAt") or 0),
         kind=str(raw.get("kind") or ""),

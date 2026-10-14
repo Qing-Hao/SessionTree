@@ -15,6 +15,8 @@
   --accent: #2B59D9; --accent-soft: #E3EAFB; --on-accent: #FFFFFF;
   --ok: #157647; --ok-soft: #DCF1E5;
   --warn: #A9480D; --warn-soft: #FBE8DA;
+  --wait: #8F6500; --wait-dot: #E0A800; --wait-soft: #FFF3C4;
+  --shell: #7B3FD0; --shell-soft: #EFE6FC;
   --closed: #717A88; --closed-soft: #E7EAEE;
   --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   --mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
@@ -28,6 +30,8 @@
     --accent: #7EA1FF; --accent-soft: #1B2846; --on-accent: #0D1015;
     --ok: #4CC38A; --ok-soft: #133224;
     --warn: #F2924A; --warn-soft: #372314;
+    --wait: #F2C94C; --wait-dot: #F2C94C; --wait-soft: #352B0C;
+    --shell: #B794F6; --shell-soft: #2A1F42;
     --closed: #808A99; --closed-soft: #1F252E;
     color-scheme: dark;
   }
@@ -39,6 +43,8 @@
   --accent: #7EA1FF; --accent-soft: #1B2846; --on-accent: #0D1015;
   --ok: #4CC38A; --ok-soft: #133224;
   --warn: #F2924A; --warn-soft: #372314;
+  --wait: #F2C94C; --wait-dot: #F2C94C; --wait-soft: #352B0C;
+  --shell: #B794F6; --shell-soft: #2A1F42;
   --closed: #808A99; --closed-soft: #1F252E;
   color-scheme: dark;
 }
@@ -60,10 +66,12 @@ button { font: inherit; color: inherit; }
 .chip { display: inline-flex; align-items: baseline; gap: 6px; cursor: pointer; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-weight: 500; }
 .chip b { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .chip[aria-pressed="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
-.c-idle b { color: var(--ok); } .c-busy b { color: var(--accent); } .c-closed b { color: var(--closed); } .c-shared b { color: var(--warn); }
+.c-waiting b { color: var(--wait); } .c-idle b { color: var(--ok); } .c-busy b { color: var(--accent); } .c-closed b { color: var(--closed); } .c-shared b { color: var(--warn); }
 .live { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .live i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: pulse 2s ease-in-out infinite; }
 .live.down i { background: var(--warn); animation: none; }
+.refresh { padding: 1px 9px; font-weight: 500; color: var(--muted); }
+.refresh:hover { color: var(--fg); }
 
 .down-banner { padding: 8px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-weight: 600; }
 .down-banner code { font-family: var(--mono); color: var(--fg); }
@@ -87,7 +95,7 @@ button { font: inherit; color: inherit; }
 .card-head .counts .w { color: var(--warn); font-weight: 600; }
 .card-body { padding: 8px 12px 8px; }
 .rdot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--line-strong); }
-.rdot.r-shared { background: var(--warn); } .rdot.r-busy { background: var(--accent); } .rdot.r-idle { background: var(--ok); }
+.rdot.r-shared { background: var(--warn); } .rdot.r-waiting { background: var(--wait-dot); } .rdot.r-busy { background: var(--accent); } .rdot.r-idle { background: var(--ok); }
 .rdot.r-closed { background: transparent; box-shadow: inset 0 0 0 2px var(--closed); }
 .card-error { margin: 0 0 6px; padding: 6px 9px; border-radius: 7px; background: var(--warn-soft); color: var(--warn); font-size: 12px; }
 
@@ -98,6 +106,7 @@ button { font: inherit; color: inherit; }
 .node { position: relative; padding-left: calc(var(--d) * 20px + 24px); padding-block: 3px; }
 .dot { position: absolute; left: calc(var(--d) * 20px + 3px); top: 7px; width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--surface); z-index: 1; }
 .dot.ghost { border-style: dashed; }
+.dot.d-waiting { border-color: var(--wait-dot); background: var(--wait-dot); }
 .dot.d-busy { border-color: var(--accent); background: var(--accent); }
 .dot.d-idle { border-color: var(--ok); background: var(--ok); }
 .dot.d-shared { border-color: var(--warn); background: var(--warn); }
@@ -129,6 +138,8 @@ a.add { text-decoration: none; }
 .pill { grid-area: pill; display: inline-flex; align-items: center; gap: 5px; justify-self: start; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
 .pill i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .st-busy { background: var(--accent-soft); color: var(--accent); } .st-busy i { animation: pulse 1.2s ease-in-out infinite; }
+.st-shell { background: var(--shell-soft); color: var(--shell); } .st-shell i { animation: pulse 1.2s ease-in-out infinite; }
+.st-waiting { background: var(--wait-soft); color: var(--wait); } .st-waiting i { background: var(--wait-dot); }
 .st-idle { background: var(--ok-soft); color: var(--ok); }
 .st-closed { background: var(--closed-soft); color: var(--closed); } .st-closed i { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
 .st-other { background: var(--surface-2); color: var(--muted); }
@@ -177,7 +188,7 @@ details.loose summary { cursor: pointer; color: var(--faint); font-size: 11.5px;
     <h1><img src="/favicon.ico" alt="">Session Tree</h1>
     <span class="sub" id="sub">Loading…</span>
     <div class="filters" id="filters" role="group" aria-label="Highlight sessions"></div>
-    <span class="live" id="live"><i></i><span id="fresh">Connecting…</span></span>
+    <span class="live" id="live"><i></i><span id="fresh">Connecting…</span><button type="button" class="btn ghost refresh" data-act="refresh" title="Fetch the board now">Refresh</button></span>
   </header>
   <div class="down-banner" id="down" hidden>Session Tree server is not running. Start it with <code>uv run python -m session_tree</code>, then this page reconnects by itself.</div>
   <div class="alerts" id="alerts" aria-label="Needs attention"></div>
@@ -190,7 +201,7 @@ details.loose summary { cursor: pointer; color: var(--faint); font-size: 11.5px;
 <script>
 const POLL_MS = 3000;
 const CLOCK_MS = 30000;
-const LABEL = { busy: "Working", idle: "Your turn", closed: "Closed" };
+const LABEL = { waiting: "Approve", busy: "Working", shell: "Shell", idle: "Your turn", closed: "Closed" };
 let board = null;
 let signature = "";
 let lastRender = 0;
@@ -220,11 +231,13 @@ function allSessions() {
 function matches(s, n) {
   if (filter === "all") return true;
   if (filter === "shared") return n.shared && s.live;
+  if (filter === "busy") return s.state === "busy" || s.state === "shell";
   return s.state === filter;
 }
 function nodeState(n) {
   if (n.shared) return "d-shared";
-  if (n.sessions.some(s => s.state === "busy")) return "d-busy";
+  if (n.sessions.some(s => s.state === "waiting")) return "d-waiting";
+  if (n.sessions.some(s => s.state === "busy" || s.state === "shell")) return "d-busy";
   if (n.sessions.some(s => s.state === "idle")) return "d-idle";
   if (n.sessions.length) return "d-closed";
   return "";
@@ -249,7 +262,10 @@ function ordered(r) {
 
 function sessionLine(s, r, n) {
   const mins = minutesSince(s.since_ms);
-  const time = !s.live ? (mins < 1 ? "closed just now" : "closed " + fmt(mins) + " ago") : s.state === "busy" ? "active now" : s.state === "idle" ? "waiting " + fmt(mins) : esc(s.status_raw);
+  const time = !s.live ? (mins < 1 ? "closed just now" : "closed " + fmt(mins) + " ago")
+    : s.state === "busy" ? "active now" : s.state === "shell" ? "running shell"
+    : s.state === "waiting" ? esc(s.waiting_for || "waiting") + " · " + fmt(mins)
+    : s.state === "idle" ? "waiting " + fmt(mins) : esc(s.status_raw);
   const open = openId === s.id;
   const title = s.title ? `<span class="stitle">${esc(s.title)}</span>` : `<span class="stitle untitled">No title yet</span>`;
   let main = "";
@@ -326,7 +342,8 @@ function card(r, i) {
   const sharedCount = r.nodes.filter(n => n.shared).length;
   const counts = (r.nogit ? "" : `${wts} worktree${wts === 1 ? "" : "s"} · `) + `${live} live` + (sharedCount ? ` · <span class="w">${sharedCount} shared</span>` : "");
   const ss = r.nodes.flatMap(n => n.sessions);
-  const rs = sharedCount ? "r-shared" : ss.some(s => s.state === "busy") ? "r-busy" : ss.some(s => s.state === "idle") ? "r-idle" : ss.length ? "r-closed" : "";
+  const rs = sharedCount ? "r-shared" : ss.some(s => s.state === "waiting") ? "r-waiting"
+    : ss.some(s => s.state === "busy" || s.state === "shell") ? "r-busy" : ss.some(s => s.state === "idle") ? "r-idle" : ss.length ? "r-closed" : "";
   const n = r.loose_branches.length;
   const loose = n ? `<details class="loose" data-loose="${esc(r.key)}" ${openLoose.has(r.key) ? "open" : ""}><summary>${n} other branch${n === 1 ? "" : "es"} without a worktree</summary><div class="bchips">${r.loose_branches.map(b => `<span>${esc(b)}</span>`).join("")}</div></details>` : "";
   const note = r.error ? `<p class="card-error">${esc(r.error)}</p>` : r.nogit ? `<p class="nogit">Not a git repository, so there is no branch graph.</p>` : "";
@@ -366,7 +383,8 @@ function renderHeader() {
   const all = allSessions();
   const count = st => all.filter(x => x.s.state === st).length;
   const shared = board ? board.repos.reduce((k, r) => k + r.nodes.filter(n => n.shared).length, 0) : 0;
-  const chips = [["all", "All", all.length, ""], ["idle", "Your turn", count("idle"), "c-idle"], ["busy", "Working", count("busy"), "c-busy"],
+  const chips = [["all", "All", all.length, ""], ["waiting", "Approve", count("waiting"), "c-waiting"], ["idle", "Your turn", count("idle"), "c-idle"],
+                 ["busy", "Working", count("busy") + count("shell"), "c-busy"],
                  ["closed", "Closed · 24 h", count("closed"), "c-closed"], ["shared", "Shared worktree", shared, "c-shared"]];
   document.getElementById("filters").innerHTML = chips.map(([k, l, c, cls]) =>
     `<button type="button" class="chip ${cls}" data-filter="${k}" aria-pressed="${filter === k}"><b>${c}</b>${l}</button>`).join("");
@@ -404,7 +422,8 @@ function render() {
   drawGraphs();
 }
 
-async function poll() {
+// force re-renders even when nothing changed, for the manual Refresh button.
+async function poll(force = false) {
   if (inFlight) return;
   inFlight = true;
   try {
@@ -416,7 +435,7 @@ async function poll() {
     const wasDown = serverDown;
     serverDown = false;
     // Re-render only on change (or to tick the clocks), so clicks are not lost mid-render.
-    if (sig !== signature || wasDown || Date.now() - lastRender > CLOCK_MS) {
+    if (force || sig !== signature || wasDown || Date.now() - lastRender > CLOCK_MS) {
       signature = sig;
       board = data;
       render();
@@ -510,6 +529,7 @@ document.addEventListener("click", e => {
   const a = t.dataset.act;
   if (a === "close-detail") { if (openId) toggleSession(openId); return; }
   if (a === "toast-close") { document.getElementById("toast").hidden = true; return; }
+  if (a === "refresh") { act(t, () => poll(true)); return; }
   if (a === "goto") {
     const x = findSession(t.dataset.sid);
     act(t, async () => focusResult(await post(`/api/sessions/${encodeURIComponent(t.dataset.sid)}/focus`), t.dataset.sid, x ? x.s.title : ""));
