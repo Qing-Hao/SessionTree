@@ -28,7 +28,7 @@ def load_pinned(path: Path = CONFIG_PATH) -> list[str]:
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="session_tree", description="Local dashboard of Claude Code sessions.")
-    parser.add_argument("--port", type=int, default=4317)
+    parser.add_argument("--port", type=int, default=4380)
     parser.add_argument("--open", action="store_true", help="open the dashboard in the browser")
     parser.add_argument("--claude-dir", type=Path, default=Path.home() / ".claude")
     mode = parser.add_mutually_exclusive_group()

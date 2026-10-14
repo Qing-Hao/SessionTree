@@ -2,7 +2,7 @@
 
 A local dashboard for people who run several Claude Code CLI sessions at once. It shows every repo you are working in as a card. Each card holds a git graph of your worktrees, showing which branch forked from which, with the live and recently closed Claude Code sessions attached to the branch they run on. From a card you can jump back to a session's terminal tab, resume a closed session, start a new one, or open the worktree in VS Code.
 
-Once installed, it runs in the system tray, starts when you sign in, and shows the dashboard at http://127.0.0.1:4317 in its own window.
+Once installed, it runs in the system tray, starts when you sign in, and shows the dashboard at http://127.0.0.1:4380 in its own window.
 
 ![Session Tree dashboard with two mock repos: worktrees on a branch graph, each with its working, waiting or closed Claude Code session](docs/images/dashboard.png)
 
@@ -143,12 +143,12 @@ Command line options for `uv run python -m session_tree`:
 |---|---|
 | (none) | run the server in the foreground; `Ctrl+C` stops it |
 | `--open` | the same, and also open the dashboard in your browser |
-| `--port N` | serve on another port (default 4317) |
+| `--port N` | serve on another port (default 4380) |
 | `--claude-dir PATH` | read sessions from another Claude config folder (default `$env:USERPROFILE\.claude`) |
 | `--tray` | background mode with the tray icon (what the shortcut runs) |
 | `--install` / `--uninstall` | add or remove the login and Start menu shortcuts |
 
-The shortcuts made by `--install` always run on port 4317 with the default Claude folder. `--port` and `--claude-dir` given together with `--install` are not saved into them.
+The shortcuts made by `--install` always run on port 4380 with the default Claude folder. `--port` and `--claude-dir` given together with `--install` are not saved into them.
 
 ## How the branch graph is worked out
 
@@ -171,7 +171,7 @@ The tray app writes a log to `$env:USERPROFILE\.session-tree\session-tree.log`. 
 |---|---|
 | A prerequisite command is not found | Open a new terminal after installing it, so PATH reloads. |
 | No tray icon after sign-in | Look behind the **^** arrow. Check that `Session Tree.lnk` is in `shell:startup` (paste that into Win+R). Read the log. |
-| Dashboard won't load, or a foreground run stops with `[Errno 10048]` | Something already uses port 4317, often the tray app itself. `Get-NetTCPConnection -LocalPort 4317` shows the process. Quit the tray app, or run on another port: `uv run python -m session_tree --open --port 4320`. |
+| Dashboard won't load, or a foreground run stops with `[Errno 10048]` | Something already uses port 4380, often the tray app itself. `Get-NetTCPConnection -LocalPort 4380` shows the process. Quit the tray app, or run on another port: `uv run python -m session_tree --open --port 4320`. |
 | **Go to terminal** says no tab was found | It finds the tab by the session's title. Sessions without a title yet cannot be found; pick the tab from the list it shows, or use **Open a second copy**. |
 | **code** does nothing | The `vscode://` link handler is missing. Rerun the VS Code installer, which registers it. If you once chose "Cancel" on the browser's "Open Visual Studio Code?" prompt, click **code** again and choose "Open". |
 | A repo is missing | Only repos with a live session, or one closed in the last 24 hours, are shown. Add others to `pinned_repos`. |
@@ -191,7 +191,7 @@ uv run pytest -q        # full test suite
 uv run python -m session_tree --open --port 4320   # run from source next to the tray app
 ```
 
-Use another `--port` while the tray app holds 4317, or quit the tray app first.
+Use another `--port` while the tray app holds 4380, or quit the tray app first.
 
 Project layout:
 

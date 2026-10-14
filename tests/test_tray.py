@@ -76,7 +76,7 @@ def test_cli_install_creates_shortcuts_then_starts_the_tray(monkeypatch):
     monkeypatch.setattr(cli.tray, "install", lambda repo: calls.append(("install", repo)) or [])
     monkeypatch.setattr(cli.tray, "launch_detached", lambda repo, port: calls.append(("launch", port)))
     cli.main(["--install"])
-    assert calls == [("install", cli.REPO_DIR), ("launch", 4317)]
+    assert calls == [("install", cli.REPO_DIR), ("launch", 4380)]
 
 
 def test_cli_tray_runs_the_tray_app(monkeypatch):

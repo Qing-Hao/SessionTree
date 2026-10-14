@@ -224,7 +224,7 @@ The spike on 2026-10-12 switched successfully from a foreground terminal both ti
 
 Rules:
 
-- Binds to `127.0.0.1` only. Default port 4317; set it with `--port`.
+- Binds to `127.0.0.1` only. Default port 4380 (4317 is the OpenTelemetry gRPC port); set it with `--port`.
 - POST requests must carry the header `X-Session-Tree: 1` and an `Origin` matching the server. Otherwise the server returns 403. This stops other websites from triggering terminal launches through the browser.
 - Session ids must match the UUID format and exist in the current board. Worktree paths must exactly match a known node path. Unknown values return 404. No user input ever reaches a command except as a known value.
 - Start with `python -m session_tree` (`--open` opens the browser).
